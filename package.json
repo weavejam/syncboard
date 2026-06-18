@@ -1,0 +1,21 @@
+{
+  "name": "syncboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm run \"/^dev:(relay|service|client)$/\"",
+    "dev:relay": "pnpm --filter @syncboard/service relay",
+    "dev:service": "pnpm --filter @syncboard/service dev",
+    "dev:client": "pnpm --filter @syncboard/client dev",
+    "clean": "pnpm -r clean",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@syncboard/service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "relay": "tinylicious",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "^0.79.6",
+    "@earendil-works/pi-ai": "^0.79.6",
+    "@fastify/cors": "^11.0.1",
+    "@fastify/websocket": "^11.2.0",
+    "@fluidframework/tinylicious-client": "^2.103.0",
+    "@syncboard/shared": "workspace:*",
+    "@vue/compiler-sfc": "^3.5.38",
+    "dotenv": "^17.4.2",
+    "esbuild": "^0.28.1",
+    "fastify": "^5.8.5",
+    "fluid-framework": "^2.103.0",
+    "nanoid": "^5.1.11",
+    "vue": "^3.5.38"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tinylicious": "^7.0.1",
+    "tsx": "^4.22.4",
+    "typescript": "^5.9.0"
+  }
+}
