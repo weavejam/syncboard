@@ -8,6 +8,9 @@ interface Props {
   root: SyncBoardRoot;
   js: string;
   selected: boolean;
+  canvasOrigin: number;
+  renderMode: "live" | "placeholder";
+  placeholderReason: "offscreen" | "small";
   lockedBy?: string;
   lockPhase?: string;
   onSelect: () => void;
@@ -24,6 +27,9 @@ export function BoardElement({
   root,
   js,
   selected,
+  canvasOrigin,
+  renderMode,
+  placeholderReason,
   lockedBy,
   lockPhase,
   onSelect,
@@ -46,6 +52,7 @@ export function BoardElement({
 
   const beginDrag = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     onSelect();
     onBringToFront();
     interactingRef.current = true;
@@ -107,8 +114,17 @@ export function BoardElement({
       className={`absolute flex flex-col rounded-lg shadow-lg overflow-hidden bg-white ${
         selected ? "ring-2 ring-blue-500" : "ring-1 ring-slate-300"
       }`}
-      style={{ left: pos.x, top: pos.y, width: size.w, height: size.h, zIndex: el.z }}
-      onMouseDown={onSelect}
+      style={{
+        left: canvasOrigin + pos.x,
+        top: canvasOrigin + pos.y,
+        width: size.w,
+        height: size.h,
+        zIndex: el.z,
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
     >
       <header
         className="flex items-center justify-between px-2 h-7 bg-slate-100 border-b border-slate-200 cursor-move select-none shrink-0"
@@ -134,12 +150,18 @@ export function BoardElement({
         </button>
       </header>
       <div className="relative flex-1 min-h-0">
-        {js ? (
+        {js && renderMode === "live" ? (
           <ComponentFrame
             root={root}
             elementId={el.id}
             js={js}
             codeVersion={el.codeVersion}
+          />
+        ) : js ? (
+          <PausedFrame
+            name={el.name}
+            reason={placeholderReason}
+            onActivate={onSelect}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-xs text-slate-400">
@@ -158,5 +180,36 @@ export function BoardElement({
         }}
       />
     </div>
+  );
+}
+
+function PausedFrame({
+  name,
+  reason,
+  onActivate,
+}: {
+  name: string;
+  reason: "offscreen" | "small";
+  onActivate: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-50 px-3 text-center text-xs text-slate-500 hover:bg-slate-100"
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        onActivate();
+      }}
+    >
+      <span className="font-medium text-slate-600">{name}</span>
+      <span>
+        {reason === "offscreen"
+          ? "Paused while offscreen to save memory"
+          : "Preview mode at small size"}
+      </span>
+      <span className="text-[10px] uppercase tracking-wide text-blue-500">
+        Click to load app
+      </span>
+    </button>
   );
 }
