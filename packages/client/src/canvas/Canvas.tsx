@@ -21,19 +21,24 @@ export function Canvas({ board, selectedId, onSelect }: Props) {
       onMouseDown={() => onSelect("")}
     >
       {root &&
-        elements.map((el) => (
-          <BoardElement
-            key={el.id}
-            el={el}
-            root={root}
-            js={root.code.get(el.id)?.js ?? ""}
-            selected={selectedId === el.id}
-            onSelect={() => onSelect(el.id)}
-            onUpdate={(patch) => board.updateElement(el.id, patch)}
-            onDelete={() => board.deleteElement(el.id)}
-            onBringToFront={() => board.bringToFront(el.id)}
-          />
-        ))}
+        elements.map((el) => {
+          const lock = board.lockFor(el.id);
+          return (
+            <BoardElement
+              key={el.id}
+              el={el}
+              root={root}
+              js={root.code.get(el.id)?.js ?? ""}
+              selected={selectedId === el.id}
+              lockedBy={lock?.ownerClientId}
+              lockPhase={lock?.phase}
+              onSelect={() => onSelect(el.id)}
+              onUpdate={(patch) => board.updateElement(el.id, patch)}
+              onDelete={() => board.deleteElement(el.id)}
+              onBringToFront={() => board.bringToFront(el.id)}
+            />
+          );
+        })}
 
       {elements.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm pointer-events-none">

@@ -8,6 +8,8 @@ interface Props {
   root: SyncBoardRoot;
   js: string;
   selected: boolean;
+  lockedBy?: string;
+  lockPhase?: string;
   onSelect: () => void;
   onUpdate: (patch: Partial<ElementSnapshot>) => void;
   onDelete: () => void;
@@ -22,6 +24,8 @@ export function BoardElement({
   root,
   js,
   selected,
+  lockedBy,
+  lockPhase,
   onSelect,
   onUpdate,
   onDelete,
@@ -113,6 +117,11 @@ export function BoardElement({
         <span className="text-xs font-medium text-slate-600 truncate">
           {el.name}
         </span>
+        {lockedBy && (
+          <span className="ml-auto mr-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+            {lockPhase ?? "generating"}
+          </span>
+        )}
         <button
           className="text-slate-400 hover:text-red-500 text-sm leading-none px-1"
           title="Delete"

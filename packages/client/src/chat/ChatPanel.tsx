@@ -6,6 +6,7 @@ interface Props {
   gen: GenerateApi;
   selectedId: string | null;
   selectedName: string | null;
+  selectedLockedBy?: string;
   onClearSelection: () => void;
 }
 
@@ -13,6 +14,7 @@ export function ChatPanel({
   gen,
   selectedId,
   selectedName,
+  selectedLockedBy,
   onClearSelection,
 }: Props) {
   const [input, setInput] = useState("");
@@ -20,7 +22,7 @@ export function ChatPanel({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const prompt = input.trim();
-    if (!prompt || gen.busy) return;
+    if (!prompt || gen.busy || selectedLockedBy) return;
     gen.generate(prompt, selectedId ?? undefined);
     setInput("");
   };
@@ -46,9 +48,17 @@ export function ChatPanel({
       </div>
 
       {selectedId && (
-        <div className="px-4 py-2 text-xs bg-blue-50 text-blue-700 flex items-center gap-2 border-t border-blue-100">
+        <div
+          className={`px-4 py-2 text-xs flex items-center gap-2 border-t ${
+            selectedLockedBy
+              ? "bg-amber-50 text-amber-700 border-amber-100"
+              : "bg-blue-50 text-blue-700 border-blue-100"
+          }`}
+        >
           <span>
-            Editing: <strong>{selectedName ?? selectedId}</strong>
+            {selectedLockedBy ? "Locked" : "Editing"}:{" "}
+            <strong>{selectedName ?? selectedId}</strong>
+            {selectedLockedBy && <> by {selectedLockedBy}</>}
           </span>
           <button
             className="ml-auto text-blue-400 hover:text-blue-600"
@@ -77,10 +87,16 @@ export function ChatPanel({
         <div className="flex gap-2 mt-2">
           <button
             type="submit"
-            disabled={gen.busy || !input.trim()}
+            disabled={gen.busy || !input.trim() || !!selectedLockedBy}
             className="flex-1 rounded-md bg-blue-600 text-white text-sm py-2 disabled:opacity-40 hover:bg-blue-700"
           >
-            {gen.busy ? "Generating…" : selectedId ? "Update" : "Generate"}
+            {gen.busy
+              ? "Generating…"
+              : selectedLockedBy
+                ? "Locked"
+                : selectedId
+                  ? "Update"
+                  : "Generate"}
           </button>
           {gen.busy && (
             <button

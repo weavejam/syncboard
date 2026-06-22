@@ -12,6 +12,7 @@ export default function App() {
   const onSelect = (id: string) => setSelectedId(id || null);
   const selectedName =
     board.elements.find((e) => e.id === selectedId)?.name ?? null;
+  const selectedLock = selectedId ? board.lockFor(selectedId) : undefined;
 
   return (
     <div className="flex h-full w-full">
@@ -32,6 +33,7 @@ export default function App() {
         gen={gen}
         selectedId={selectedId}
         selectedName={selectedName}
+        selectedLockedBy={selectedLock?.ownerClientId}
         onClearSelection={() => setSelectedId(null)}
       />
     </div>

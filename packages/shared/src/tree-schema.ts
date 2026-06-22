@@ -31,6 +31,12 @@ export class CodeArtifact extends sf.object("CodeArtifact", {
   /** JSON string describing runtime state shape (field/type/default). */
   stateSchema: sf.string,
   codeVersion: sf.number,
+  /** Latest source SFC used to compile this artifact. */
+  sfcSource: sf.string,
+  /** Deterministic compact summary of older user requests and design intent. */
+  historySummary: sf.string,
+  /** JSON array of the most recent raw history turns. */
+  recentTurnsJson: sf.string,
 }) {}
 
 /**
@@ -41,20 +47,33 @@ export class StateBlob extends sf.object("StateBlob", {
   json: sf.string,
 }) {}
 
+/** Active generation lease for one component. */
+export class GenerationLock extends sf.object("GenerationLock", {
+  elementId: sf.string,
+  requestId: sf.string,
+  ownerClientId: sf.string,
+  /** thinking | compiling | writing */
+  phase: sf.string,
+  startedAt: sf.number,
+  expiresAt: sf.number,
+}) {}
+
 export class BoardArray extends sf.array("BoardArray", BoardElement) {}
 export class CodeMap extends sf.map("CodeMap", CodeArtifact) {}
 export class StateMap extends sf.map("StateMap", StateBlob) {}
+export class LockMap extends sf.map("LockMap", GenerationLock) {}
 
 /** Container top-level node. */
 export class SyncBoardRoot extends sf.object("SyncBoardRoot", {
   board: BoardArray,
   code: CodeMap,
   state: StateMap,
+  locks: LockMap,
 }) {}
 
 /** Initial (empty) tree for a freshly created container. */
 export const initialTree = (): SyncBoardRoot =>
-  new SyncBoardRoot({ board: [], code: {}, state: {} });
+  new SyncBoardRoot({ board: [], code: {}, state: {}, locks: {} });
 
 export const treeConfiguration = new TreeViewConfiguration({
   schema: SyncBoardRoot,

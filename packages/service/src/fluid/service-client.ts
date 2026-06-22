@@ -9,6 +9,7 @@ import {
   BoardElement,
   CodeArtifact,
   StateBlob,
+  GenerationLock,
   treeConfiguration,
   initialTree,
 } from "@syncboard/shared";
@@ -22,6 +23,24 @@ export interface ServiceFluid {
   containerId: string;
   view: TreeView<typeof SyncBoardRoot>;
   root: SyncBoardRoot;
+}
+
+export interface CodeArtifactInput {
+  js: string;
+  stateSchema: string;
+  codeVersion: number;
+  sfcSource: string;
+  historySummary: string;
+  recentTurnsJson: string;
+}
+
+export interface GenerationLockInput {
+  elementId: string;
+  requestId: string;
+  ownerClientId: string;
+  phase: string;
+  startedAt: number;
+  expiresAt: number;
 }
 
 let singleton: ServiceFluid | null = null;
@@ -67,7 +86,7 @@ export function insertElement(
     codeVersion: number;
     createdBy: string;
   },
-  artifact: { js: string; stateSchema: string; codeVersion: number },
+  artifact: CodeArtifactInput,
   initialStateJson: string,
 ): void {
   const { root } = fluid();
@@ -79,7 +98,7 @@ export function insertElement(
 /** Replace an element's compiled code and bump its version. */
 export function updateElementCode(
   id: string,
-  artifact: { js: string; stateSchema: string; codeVersion: number },
+  artifact: CodeArtifactInput,
   initialStateJson: string,
 ): void {
   const { root } = fluid();
@@ -98,4 +117,41 @@ export function getElement(id: string): BoardElement | undefined {
 
 export function getCurrentCodeVersion(id: string): number {
   return fluid().root.code.get(id)?.codeVersion ?? 0;
+}
+
+export function getCodeArtifact(id: string): CodeArtifact | undefined {
+  return fluid().root.code.get(id);
+}
+
+export function acquireGenerationLock(
+  lock: GenerationLockInput,
+): { ok: true } | { ok: false; existing: GenerationLock } {
+  const { root } = fluid();
+  const existing = root.locks.get(lock.elementId);
+  if (existing && existing.expiresAt > Date.now()) {
+    return { ok: false, existing };
+  }
+  root.locks.set(lock.elementId, new GenerationLock(lock));
+  return { ok: true };
+}
+
+export function updateGenerationLockPhase(
+  elementId: string,
+  requestId: string,
+  phase: string,
+  expiresAt: number,
+): void {
+  const lock = fluid().root.locks.get(elementId);
+  if (lock && lock.requestId === requestId) {
+    lock.phase = phase;
+    lock.expiresAt = expiresAt;
+  }
+}
+
+export function releaseGenerationLock(elementId: string, requestId: string): void {
+  const { root } = fluid();
+  const lock = root.locks.get(elementId);
+  if (lock && lock.requestId === requestId) {
+    root.locks.delete(elementId);
+  }
 }

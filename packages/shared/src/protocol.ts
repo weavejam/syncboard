@@ -16,6 +16,8 @@ export interface GenerateRequest {
   targetElementId?: string;
   /** When modifying, the current SFC source as context (optional). */
   prevSfc?: string;
+  /** Short client id used for generation lock ownership/display. */
+  clientId?: string;
 }
 
 export interface CancelRequest {
@@ -27,11 +29,21 @@ export type ClientMessage = GenerateRequest | CancelRequest;
 
 /** ---- WebSocket: service -> client ---- */
 
-export type GenerateStatus = "received" | "compiling" | "writing";
+export type GenerateStatus = "thinking" | "received" | "compiling" | "writing";
 
 export interface AcceptedMessage {
   type: "accepted";
   requestId: string;
+  /** Element reserved/locked for this request. */
+  elementId?: string;
+}
+
+export interface LockedMessage {
+  type: "locked";
+  requestId: string;
+  elementId: string;
+  ownerClientId: string;
+  expiresAt: number;
 }
 
 export interface CotMessage {
@@ -61,6 +73,7 @@ export interface ErrorMessage {
 
 export type ServerMessage =
   | AcceptedMessage
+  | LockedMessage
   | CotMessage
   | StatusMessage
   | DoneMessage

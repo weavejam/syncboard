@@ -14,16 +14,27 @@ export interface ElementSnapshot {
   codeVersion: number;
 }
 
+export interface LockSnapshot {
+  elementId: string;
+  requestId: string;
+  ownerClientId: string;
+  phase: string;
+  startedAt: number;
+  expiresAt: number;
+}
+
 export interface BoardApi {
   status: "connecting" | "ready" | "error";
   error?: string;
   elements: ElementSnapshot[];
+  locks: LockSnapshot[];
   root: SyncBoardRoot | null;
   /** Bump on any tree change; consumers can use as a re-read signal. */
   revision: number;
   updateElement: (id: string, patch: Partial<ElementSnapshot>) => void;
   deleteElement: (id: string) => void;
   bringToFront: (id: string) => void;
+  lockFor: (id: string) => LockSnapshot | undefined;
 }
 
 function snapshot(root: SyncBoardRoot): ElementSnapshot[] {
@@ -39,10 +50,22 @@ function snapshot(root: SyncBoardRoot): ElementSnapshot[] {
   }));
 }
 
+function lockSnapshot(root: SyncBoardRoot): LockSnapshot[] {
+  return [...root.locks].map(([elementId, lock]) => ({
+    elementId,
+    requestId: lock.requestId,
+    ownerClientId: lock.ownerClientId,
+    phase: lock.phase,
+    startedAt: lock.startedAt,
+    expiresAt: lock.expiresAt,
+  }));
+}
+
 export function useBoard(): BoardApi {
   const [status, setStatus] = useState<BoardApi["status"]>("connecting");
   const [error, setError] = useState<string>();
   const [elements, setElements] = useState<ElementSnapshot[]>([]);
+  const [locks, setLocks] = useState<LockSnapshot[]>([]);
   const [revision, setRevision] = useState(0);
   const connRef = useRef<BoardConnection | null>(null);
 
@@ -56,6 +79,7 @@ export function useBoard(): BoardApi {
         connRef.current = conn;
         const refresh = () => {
           setElements(snapshot(conn.root));
+          setLocks(lockSnapshot(conn.root));
           setRevision((r) => r + 1);
         };
         unsubscribe = Tree.on(conn.root, "treeChanged", refresh);
@@ -104,14 +128,19 @@ export function useBoard(): BoardApi {
     if (el) el.z = Date.now();
   };
 
+  const lockFor: BoardApi["lockFor"] = (id) =>
+    locks.find((lock) => lock.elementId === id && lock.expiresAt > Date.now());
+
   return {
     status,
     error,
     elements,
+    locks,
     root: connRef.current?.root ?? null,
     revision,
     updateElement,
     deleteElement,
     bringToFront,
+    lockFor,
   };
 }
