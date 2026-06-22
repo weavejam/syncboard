@@ -45,15 +45,29 @@ pnpm install
 pnpm -r build
 ```
 
-## Run (three terminals)
+## Run
+
+Make sure the external **SubstrateLLMProvider** proxy is running first
+(`npm run start -- --port 23671` in `C:\src\SubstrateLLMProvider`).
+
+Then start the relay + service + client with a single command:
+
+```bash
+pnpm dev            # starts relay (:7070) + service (:8787) + client (:5990)
+```
+
+Ctrl+C stops all three. (The service uses `tsx watch`; first boot takes ~30–45s
+while it transpiles the Fluid dependency tree.)
+
+Or run them in separate terminals:
 
 ```bash
 pnpm dev:relay      # 1) Tinylicious Fluid relay on :7070
 pnpm dev:service    # 2) Fastify service on :8787
-pnpm dev:client     # 3) Vite dev server on :5173
+pnpm dev:client     # 3) Vite dev server on :5990
 ```
 
-Open http://localhost:5173 in two browser tabs to see realtime sync.
+Open http://localhost:5990 in two browser tabs to see realtime sync.
 
 ## Architecture (short)
 
