@@ -51,6 +51,7 @@ export function BoardElement({
   }, [el.width, el.height]);
 
   const beginDrag = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
     onSelect();
@@ -81,6 +82,7 @@ export function BoardElement({
   };
 
   const beginResize = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
     onSelect();
@@ -122,8 +124,10 @@ export function BoardElement({
         zIndex: el.z,
       }}
       onMouseDown={(e) => {
-        e.stopPropagation();
-        onSelect();
+        if (e.button !== 2) {
+          e.stopPropagation();
+          onSelect();
+        }
       }}
     >
       <header
@@ -142,8 +146,10 @@ export function BoardElement({
           className="text-slate-400 hover:text-red-500 text-sm leading-none px-1"
           title="Delete"
           onMouseDown={(e) => {
-            e.stopPropagation();
-            onDelete();
+            if (e.button !== 2) {
+              e.stopPropagation();
+              onDelete();
+            }
           }}
         >
           ✕
@@ -197,8 +203,10 @@ function PausedFrame({
       type="button"
       className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-50 px-3 text-center text-xs text-slate-500 hover:bg-slate-100"
       onMouseDown={(e) => {
-        e.stopPropagation();
-        onActivate();
+        if (e.button !== 2) {
+          e.stopPropagation();
+          onActivate();
+        }
       }}
     >
       <span className="font-medium text-slate-600">{name}</span>
