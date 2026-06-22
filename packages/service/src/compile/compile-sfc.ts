@@ -29,8 +29,9 @@ const VUE_SHIM = vueShim();
 
 /**
  * Bridge bootstrap injected into every component. Runs inside the sandboxed
- * iframe: mounts the app and synchronizes its exposed `state` with the wrapper
- * via postMessage (see bridge-protocol).
+ * iframe: mounts the app and synchronizes its exposed `sharedState` with the
+ * wrapper via postMessage (see bridge-protocol). Older generated apps that only
+ * expose `state` remain supported as a fallback.
  */
 function bootstrap(styles: string): string {
   return `
@@ -45,7 +46,8 @@ const { createApp, watch, nextTick } = __V;
 
 const __app = createApp(__Component);
 const __vm = __app.mount('#app');
-const __state = __vm && __vm.state ? __vm.state : null;
+const __sharedState = __vm && (__vm.sharedState || __vm.state) ? (__vm.sharedState || __vm.state) : null;
+const __localState = __vm && __vm.localState ? __vm.localState : null;
 let __applyingRemote = false;
 
 function __clone(o){ try { return JSON.parse(JSON.stringify(o)); } catch (e) { return {}; } }
@@ -53,14 +55,14 @@ function __send(state){
   parent.postMessage({ t: 'patch', v: 1, state, opId: Math.random().toString(36).slice(2) }, '*');
 }
 function __applyRemote(s){
-  if (!__state || s == null) return;
+  if (!__sharedState || s == null) return;
   __applyingRemote = true;
-  for (const k of Object.keys(s)) { __state[k] = s[k]; }
+  for (const k of Object.keys(s)) { __sharedState[k] = s[k]; }
   nextTick(() => { __applyingRemote = false; });
 }
 
-if (__state) {
-  watch(__state, () => { if (!__applyingRemote) __send(__clone(__state)); }, { deep: true });
+if (__sharedState) {
+  watch(__sharedState, () => { if (!__applyingRemote) __send(__clone(__sharedState)); }, { deep: true });
 }
 
 window.addEventListener('message', (e) => {
@@ -68,7 +70,7 @@ window.addEventListener('message', (e) => {
   const m = e.data;
   if (!m || m.v !== 1) return;
   if (m.t === 'snapshot') {
-    if (m.state == null) { if (__state) __send(__clone(__state)); }
+    if (m.state == null) { if (__sharedState) __send(__clone(__sharedState)); }
     else __applyRemote(m.state);
   } else if (m.t === 'patch') {
     __applyRemote(m.state);
@@ -79,9 +81,15 @@ parent.postMessage({ t: 'ready', v: 1 }, '*');
 `;
 }
 
-/** Best-effort: pull the literal passed to the single top-level reactive(). */
+/** Best-effort: pull the literal passed to sharedState (or legacy state). */
 function extractStateSchema(scriptContent: string): string {
-  const m = scriptContent.match(/reactive\s*\(\s*(\{[\s\S]*?\})\s*\)/);
+  const m =
+    scriptContent.match(
+      /(?:const|let)\s+sharedState\s*=\s*reactive\s*\(\s*(\{[\s\S]*?\})\s*\)/,
+    ) ??
+    scriptContent.match(
+      /(?:const|let)\s+state\s*=\s*reactive\s*\(\s*(\{[\s\S]*?\})\s*\)/,
+    );
   return m ? JSON.stringify({ shape: m[1] }) : "{}";
 }
 
