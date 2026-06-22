@@ -2,11 +2,26 @@ import { useState } from "react";
 import type { GenerateApi } from "./useGenerate.js";
 import { CotStream } from "./CotStream.js";
 
+export interface AgentHistoryTurn {
+  requestId: string;
+  userPrompt: string;
+  assistantSummary: string;
+  emittedName: string;
+  codeVersion: number;
+  createdAt: number;
+}
+
+export interface AgentHistoryView {
+  compactSummary: string;
+  recentTurns: AgentHistoryTurn[];
+}
+
 interface Props {
   gen: GenerateApi;
   selectedId: string | null;
   selectedName: string | null;
   selectedLockedBy?: string;
+  agentHistory?: AgentHistoryView;
   onClearSelection: () => void;
 }
 
@@ -15,6 +30,7 @@ export function ChatPanel({
   selectedId,
   selectedName,
   selectedLockedBy,
+  agentHistory,
   onClearSelection,
 }: Props) {
   const [input, setInput] = useState("");
@@ -45,6 +61,7 @@ export function ChatPanel({
             {gen.error}
           </div>
         )}
+        {selectedId && <AgentHistory history={agentHistory} />}
       </div>
 
       {selectedId && (
@@ -111,4 +128,71 @@ export function ChatPanel({
       </form>
     </div>
   );
+}
+
+function AgentHistory({ history }: { history?: AgentHistoryView }) {
+  const recentTurns = history?.recentTurns ?? [];
+  const compactSummary = history?.compactSummary.trim() ?? "";
+  const hasHistory = compactSummary || recentTurns.length > 0;
+
+  return (
+    <section className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="font-semibold text-slate-700">Agent history</h2>
+        <span className="text-[10px] uppercase tracking-wide text-slate-400">
+          {recentTurns.length} recent
+        </span>
+      </div>
+      {!hasHistory ? (
+        <p className="text-slate-400">
+          No persisted generation history yet. Generate or update this component
+          to add turns here.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {compactSummary && (
+            <div>
+              <div className="mb-1 font-medium text-slate-500">
+                Compacted summary
+              </div>
+              <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-[11px] leading-relaxed text-slate-600">
+                {compactSummary}
+              </pre>
+            </div>
+          )}
+          {recentTurns.length > 0 && (
+            <div className="space-y-2">
+              <div className="font-medium text-slate-500">Recent requests</div>
+              {[...recentTurns].reverse().map((turn) => (
+                <article
+                  key={turn.requestId}
+                  className="rounded bg-white p-2 shadow-sm ring-1 ring-slate-100"
+                >
+                  <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
+                    <span>v{turn.codeVersion}</span>
+                    <span>·</span>
+                    <time>{formatTime(turn.createdAt)}</time>
+                  </div>
+                  <div className="font-medium text-slate-700">
+                    {turn.userPrompt}
+                  </div>
+                  <div className="mt-1 text-slate-500">
+                    {turn.assistantSummary}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function formatTime(value: number): string {
+  if (!Number.isFinite(value)) return "";
+  return new Date(value).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

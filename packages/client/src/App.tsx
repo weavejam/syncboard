@@ -2,7 +2,45 @@ import { useState } from "react";
 import { useBoard } from "./fluid/useBoard.js";
 import { useGenerate } from "./chat/useGenerate.js";
 import { Canvas } from "./canvas/Canvas.js";
-import { ChatPanel } from "./chat/ChatPanel.js";
+import {
+  ChatPanel,
+  type AgentHistoryTurn,
+  type AgentHistoryView,
+} from "./chat/ChatPanel.js";
+
+function parseAgentHistory(
+  rawSummary: string | undefined,
+  rawTurns: string | undefined,
+): AgentHistoryView {
+  let recentTurns: AgentHistoryTurn[] = [];
+  if (rawTurns) {
+    try {
+      const parsed = JSON.parse(rawTurns) as unknown;
+      if (Array.isArray(parsed)) {
+        recentTurns = parsed.filter(isAgentHistoryTurn);
+      }
+    } catch {
+      recentTurns = [];
+    }
+  }
+  return {
+    compactSummary: rawSummary ?? "",
+    recentTurns,
+  };
+}
+
+function isAgentHistoryTurn(v: unknown): v is AgentHistoryTurn {
+  if (typeof v !== "object" || v === null) return false;
+  const t = v as Partial<AgentHistoryTurn>;
+  return (
+    typeof t.requestId === "string" &&
+    typeof t.userPrompt === "string" &&
+    typeof t.assistantSummary === "string" &&
+    typeof t.emittedName === "string" &&
+    typeof t.codeVersion === "number" &&
+    typeof t.createdAt === "number"
+  );
+}
 
 export default function App() {
   const board = useBoard();
@@ -13,6 +51,14 @@ export default function App() {
   const selectedName =
     board.elements.find((e) => e.id === selectedId)?.name ?? null;
   const selectedLock = selectedId ? board.lockFor(selectedId) : undefined;
+  const selectedArtifact =
+    board.root && selectedId ? board.root.code.get(selectedId) : undefined;
+  const selectedHistory = selectedId
+    ? parseAgentHistory(
+        selectedArtifact?.historySummary,
+        selectedArtifact?.recentTurnsJson,
+      )
+    : undefined;
 
   return (
     <div className="flex h-full w-full">
@@ -34,6 +80,7 @@ export default function App() {
         selectedId={selectedId}
         selectedName={selectedName}
         selectedLockedBy={selectedLock?.ownerClientId}
+        agentHistory={selectedHistory}
         onClearSelection={() => setSelectedId(null)}
       />
     </div>
